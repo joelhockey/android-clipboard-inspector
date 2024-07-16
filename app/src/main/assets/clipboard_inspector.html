@@ -1,0 +1,105 @@
+<html>
+<head>
+<style>
+body {
+  background-color: #c9d7e4;
+}
+[contenteditable] {
+  padding: 5px;
+  border: 1px dotted;
+  background: #fff;
+}
+img {
+  height: 100px;
+  width: 100px;
+}
+</style>
+</head>
+<body>
+<h3>web inspector</h3>  
+<span contenteditable=true>paste here</span>
+<input id="input" type="file" />
+<p>
+<pre id="paste"></pre>
+<pre id="dragstart"></pre>
+<pre id="dragenter"></pre>
+<pre id="drop"></pre>
+<pre id="output"></pre>
+<p>
+
+<script>
+  function clear() {
+    for (const id of ['paste', 'dragstart', 'dragenter', 'drop', 'output']) {
+  	  document.getElementById(id).innerHTML = '';
+	}
+  }
+  function fileToString(f) {
+    return f ? `name=${f.name}, size=${f.size}`: '';
+  }
+  function showFile(f, i) {
+    const reader = new FileReader();
+	if (f.type.startsWith('image/')) {
+	  reader.addEventListener("load",  ()=>{
+	    document.getElementById(`file-${i}`).src = reader.result;
+	  });
+	  reader.readAsDataURL(f);
+	  return `<img id="file-${i}"/>`;
+	} else {
+	  reader.addEventListener("load",  ()=>{
+	    document.getElementById(`file-${i}`).innerText = reader.result.substring(0, 100);
+	  });
+	  reader.readAsText(f)
+	  return `<span id="file-${i}"></span>`;
+	}
+  }
+
+  function eventToString(e) {
+    const dataTransfer = e.clipboardData || e.dataTransfer;
+    const items = Array.from(dataTransfer.items);
+    const files = Array.from(dataTransfer.files);
+    return `type=${e.type} types=${dataTransfer.types.join(',')} items.length=${items.length}: ${
+      items.map((item, i) =>
+        `\n[${i}]: kind=${item.kind}, type=${item.type} ${
+          item.kind === 'string'
+            ? `string=${dataTransfer.getData(item.type)}`
+            : fileToString(item.getAsFile())}`
+      ).join('')}\nfiles.length=${files.length}: ${
+      files.map((file, i) => `\n[${i}]: ${showFile(file, i)}`).join('')}`;
+  }
+  function log(e) {
+    console.log(eventToString(e));
+  }
+  function stop(e) {
+    log(e);
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  window.addEventListener('paste', e=>{
+    clear();
+    document.getElementById('paste').innerHTML = eventToString(e);
+    e.stopPropagation();
+	e.preventDefault();
+  });
+  window.addEventListener('dragstart', e=>{
+    clear();
+    document.getElementById('dragstart').innerHTML = eventToString(e);
+  });
+  window.addEventListener("dragenter", e=>{
+    clear();
+    document.getElementById('dragenter').innerHTML = eventToString(e);
+  });
+  window.addEventListener("dragleave", log);
+  window.addEventListener("dragover", stop);
+  window.addEventListener("dragend", log);
+  window.addEventListener('drop', e=>{
+    document.getElementById('drop').innerHTML = eventToString(e);
+    e.stopPropagation();
+    e.preventDefault();
+  });
+  document.getElementById('input').addEventListener('change', (e)=>{
+    clear();
+    document.getElementById('output').innerHTML = showFile(e.target.files[0], 'input');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clipboard Inspector"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyText"
+                android:text="text" />
+
+            <Button
+                android:id="@+id/html"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyHtml"
+                android:text="html" />
+
+            <Button
+                android:id="@+id/url"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyUrl"
+                android:text="url" />
+        </LinearLayout>
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/file_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFileText"
+                android:text="file text"/>
+
+            <Button
+                android:id="@+id/file_xtx"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFileXtx"
+                android:text="file xtx"/>
+
+            <Button
+                android:id="@+id/file_text_multi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFileTextMulti"
+                android:text="file text multi"/>
+        </LinearLayout>
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/file_jpg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFileJpg"
+                android:text="file jpg"/>
+
+            <Button
+                android:id="@+id/file_png"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFilePng"
+                android:text="file png"/>
+
+            <Button
+                android:id="@+id/file_multi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFileMulti"
+                android:text="file multi"/>
+
+            <Button
+                android:id="@+id/file_pdf"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyFilePdf"
+                android:text="file pdf"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/paste"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="onPaste"
+            android:text="paste"/>
+
+        <WebView
+            android:id="@+id/webview"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"/>
+        <EditText
+            android:id="@+id/inspect"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:background="#EAF0F0"
+            android:ems="10"
+            android:gravity="start|top"
+            android:inputType="textMultiLine"/>
+
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
