@@ -4,10 +4,15 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
+import android.content.ContentProvider
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ProviderInfo
+import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.view.DragEvent
 import android.view.View
@@ -23,12 +28,64 @@ import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
+
 private const val TAG = "MainActivity"
+private const val AUTHORITY = "com.example.clipboardinspector.contentprovider"
+
+class ClipboardInspectorFileProvider : FileProvider(R.xml.file_paths) {}
+
+class ClipboardInspectorContentProvider : ContentProvider() {
+  private var provider = ClipboardInspectorFileProvider()
+
+  override fun attachInfo(context: Context, info: ProviderInfo) {
+    super.attachInfo(context, info)
+    // FileProvider throws if it finds out this is exported.
+    val exported = info.exported
+    info.exported = false
+    provider.attachInfo(context, info)
+    info.exported = exported
+  }
+
+  override fun onCreate(): Boolean {
+    return provider.onCreate()
+  }
+  override fun query(
+    uri: Uri,
+    projection: Array<out String>?,
+    selection: String?,
+    selectionArgs: Array<out String>?,
+    sortOrder: String?
+  ): Cursor? {
+    return provider.query(uri, projection, selection, selectionArgs, sortOrder)
+  }
+  override fun getType(uri: Uri): String? {
+    return provider.getType(uri)
+  }
+  @Throws(FileNotFoundException::class)
+  override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor? {
+    return provider.openFile(uri, mode)
+  }
+  override fun insert(uri: Uri, values: ContentValues?): Uri? {
+    return provider.insert(uri, values)
+  }
+  override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
+    return provider.delete(uri, selection, selectionArgs)
+  }
+  override fun update(
+    uri: Uri,
+    values: ContentValues?,
+    selection: String?,
+    selectionArgs: Array<out String>?
+  ): Int {
+    return provider.update(uri, values, selection, selectionArgs)
+  }
+}
 
 class MainActivity : AppCompatActivity() {
   var filePath: ValueCallback<Array<Uri>>? = null
@@ -51,7 +108,7 @@ class MainActivity : AppCompatActivity() {
       v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
       insets
     }
-    Log.i(TAG, "copying asset files to " + getExternalFilesDir(null))
+    Log.i(TAG, "XXX copying asset files to " + getExternalFilesDir(null))
     for (filename in assets.list("")!!) {
       var inStream : InputStream? = null
       var outStream : OutputStream? = null
@@ -60,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         outStream = FileOutputStream(File(getExternalFilesDir(null), filename))
         inStream.copyTo(outStream)
       } catch (e: IOException) {
-        Log.i(TAG, "failed to copy " + filename)
+        Log.i(TAG, "XXX failed to copy " + filename)
       } finally {
         inStream?.close()
         outStream?.close()
@@ -133,6 +190,13 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
+  private fun getUriForFile(context: Context, authority: String, file: File) : Uri {
+    //val externalFilesDir = context.getExternalFilesDir(null)!!.path
+    //assert(file.path.startsWith(externalFilesDir, false))
+    //return Uri.parse("content://" + AUTHORITY + file.path.substring(externalFilesDir.length))
+    return FileProvider.getUriForFile(context, authority, file)
+  }
+
   private fun startDragAndDrop(view : View, clipData : ClipData) {
     view.startDragAndDrop(clipData, View.DragShadowBuilder(view), null, View.DRAG_FLAG_GLOBAL + View.DRAG_FLAG_GLOBAL_URI_READ)
   }
@@ -164,7 +228,7 @@ class MainActivity : AppCompatActivity() {
 
   private fun getClipDataFileText() : ClipData {
     val f = File(getExternalFilesDir(null), "hello.txt")
-    val uri = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f)
+    val uri = getUriForFile(this, AUTHORITY, f)
     val clipData = ClipData.newUri(contentResolver,  "label", uri)
     return clipData
   }
@@ -175,7 +239,7 @@ class MainActivity : AppCompatActivity() {
 
   private fun getClipDataFileXtx() : ClipData {
     val f = File(getExternalFilesDir(null), "clanky.xtx")
-    val uri = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f)
+    val uri = getUriForFile(this, AUTHORITY, f)
     val clipData = ClipData.newUri(contentResolver,  "label", uri)
     return clipData
   }
@@ -187,8 +251,8 @@ class MainActivity : AppCompatActivity() {
   private fun getClipDataFileTextMulti() : ClipData {
     val f1 = File(getExternalFilesDir(null), "hello.txt")
     val f2 = File(getExternalFilesDir(null), "clanky.xtx")
-    val uri1 = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f1)
-    val uri2 = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f2)
+    val uri1 = getUriForFile(this, AUTHORITY, f1)
+    val uri2 = getUriForFile(this, AUTHORITY, f2)
     val clipData = ClipData.newUri(contentResolver,  "label", uri1)
     clipData.addItem(ClipData.Item(uri2))
     return clipData
@@ -200,7 +264,7 @@ class MainActivity : AppCompatActivity() {
 
   private fun getClipDataFileJpg() : ClipData {
     val f = File(getExternalFilesDir(null), "kitten.jpg")
-    val uri = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f)
+    val uri = getUriForFile(this, AUTHORITY, f)
     return ClipData.newUri(contentResolver, "label", uri)
   }
   fun onCopyFileJpg(v: View) {
@@ -213,10 +277,10 @@ class MainActivity : AppCompatActivity() {
     val f2 = File(getExternalFilesDir(null), "puppy.png")
     val f3 = File(getExternalFilesDir(null), "hello.txt")
     val f4 = File(getExternalFilesDir(null), "pdf-test.pdf")
-    val uri1 = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f1)
-    val uri2 = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f2)
-    val uri3 = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f3)
-    val uri4 = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f4)
+    val uri1 = getUriForFile(this, AUTHORITY, f1)
+    val uri2 = getUriForFile(this, AUTHORITY, f2)
+    val uri3 = getUriForFile(this, AUTHORITY, f3)
+    val uri4 = getUriForFile(this, AUTHORITY, f4)
     val clipData = ClipData("label", arrayOf("image/jpeg", "image/png"), ClipData.Item(uri1))
     clipData.addItem(ClipData.Item(uri2))
     clipData.addItem(ClipData.Item(uri3))
@@ -230,7 +294,7 @@ class MainActivity : AppCompatActivity() {
 
   private fun getClipDataFilePng() : ClipData {
     val f = File(getExternalFilesDir(null), "PNG_Test.png")
-    val uri = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f)
+    val uri = getUriForFile(this, AUTHORITY, f)
     return ClipData.newUri(contentResolver, "label", uri)
   }
   fun onCopyFilePng(v: View) {
@@ -240,7 +304,7 @@ class MainActivity : AppCompatActivity() {
 
   private fun getClipDataFilePdf() : ClipData {
     val f = File(getExternalFilesDir(null), "pdf-test.pdf")
-    val uri = FileProvider.getUriForFile(this, "com.example.clipboardinspector.fileprovider", f)
+    val uri = getUriForFile(this, AUTHORITY, f)
     return ClipData.newUri(contentResolver, "label", uri)
   }
   fun onCopyFilePdf(v: View) {

@@ -22,13 +22,19 @@
             </intent-filter>
         </activity>
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.example.clipboardinspector.ClipboardInspectorFileProvider"
             android:authorities="com.example.clipboardinspector.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/filepaths" />
+                android:resource="@xml/file_paths" />
+        </provider>
+        <provider
+            android:name="com.example.clipboardinspector.ClipboardInspectorContentProvider"
+            android:authorities="com.example.clipboardinspector.contentprovider"
+            android:exported="true"
+            android:grantUriPermissions="true">
         </provider>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
