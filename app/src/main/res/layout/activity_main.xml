@@ -24,6 +24,13 @@
             android:orientation="horizontal">
 
             <Button
+                android:id="@+id/empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyEmpty"
+                android:text="empty" />
+
+            <Button
                 android:id="@+id/text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -70,6 +77,13 @@
                 android:layout_height="wrap_content"
                 android:onClick="onCopyFileTextMulti"
                 android:text="file text multi"/>
+
+            <Button
+                android:id="@+id/text_html_uri"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onCopyTextHtmlUri"
+                android:text="text-html-uri" />
         </LinearLayout>
 
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -119,7 +133,7 @@
         <EditText
             android:id="@+id/inspect"
             android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_height="300dp"
             android:background="#EAF0F0"
             android:ems="10"
             android:gravity="start|top"

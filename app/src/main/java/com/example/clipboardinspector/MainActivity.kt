@@ -11,8 +11,10 @@ import android.content.Intent
 import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
+import android.os.StrictMode
 import android.util.Log
 import android.view.DragEvent
 import android.view.View
@@ -23,6 +25,7 @@ import android.widget.Button
 import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
@@ -62,7 +65,12 @@ class ClipboardInspectorContentProvider : ContentProvider() {
     selectionArgs: Array<out String>?,
     sortOrder: String?
   ): Cursor? {
-    return provider.query(uri, projection, selection, selectionArgs, sortOrder)
+    val oldPolicy = StrictMode.allowThreadDiskReads()
+    try {
+      return provider.query(uri, projection, selection, selectionArgs, sortOrder)
+    } finally {
+      StrictMode.setThreadPolicy(oldPolicy)
+      }
   }
   override fun getType(uri: Uri): String? {
     return provider.getType(uri)
@@ -140,6 +148,10 @@ class MainActivity : AppCompatActivity() {
       }
     }
     webview.loadUrl("file:///android_asset/clipboard_inspector.html")
+    findViewById<Button>(R.id.empty).setOnLongClickListener { view ->
+      startDragAndDrop(view, null)
+      true
+    }
     findViewById<Button>(R.id.text).setOnLongClickListener { view ->
       startDragAndDrop(view, getClipDataText())
       true
@@ -164,6 +176,10 @@ class MainActivity : AppCompatActivity() {
       startDragAndDrop(view, getClipDataFileTextMulti())
       true
     }
+    findViewById<Button>(R.id.text_html_uri).setOnLongClickListener { view ->
+      startDragAndDrop(view, getClipDataTextHtmlUri())
+      true
+    }
     findViewById<Button>(R.id.file_jpg).setOnLongClickListener { view ->
       startDragAndDrop(view, getClipDataFileJpg())
       true
@@ -181,9 +197,15 @@ class MainActivity : AppCompatActivity() {
       true
     }
     findViewById<EditText>(R.id.inspect).setOnDragListener { _, event ->
-      if (event.action == DragEvent.ACTION_DROP) {
+      if (event.action == DragEvent.ACTION_DRAG_STARTED) {
+        inspect("drag-start", event.clipDescription, event.clipData)
+      } else if (event.action == DragEvent.ACTION_DRAG_ENTERED) {
+        inspect("drag-enter", event.clipDescription, event.clipData)
+      } else if (event.action == DragEvent.ACTION_DRAG_EXITED) {
+        inspect("drag-exit", event.clipDescription, event.clipData)
+      } else if (event.action == DragEvent.ACTION_DROP) {
         val dropPermissions = requestDragAndDropPermissions(event)
-        inspect(event.clipDescription, event.clipData)
+        inspect("drop", event.clipDescription, event.clipData)
         dropPermissions?.release()
       }
       true
@@ -197,8 +219,14 @@ class MainActivity : AppCompatActivity() {
     return FileProvider.getUriForFile(context, authority, file)
   }
 
-  private fun startDragAndDrop(view : View, clipData : ClipData) {
+  private fun startDragAndDrop(view : View, clipData : ClipData?) {
     view.startDragAndDrop(clipData, View.DragShadowBuilder(view), null, View.DRAG_FLAG_GLOBAL + View.DRAG_FLAG_GLOBAL_URI_READ)
+  }
+
+  @RequiresApi(Build.VERSION_CODES.P)
+  fun onCopyEmpty(v: View) {
+    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.clearPrimaryClip()
   }
 
   private fun getClipDataText() : ClipData {
@@ -224,6 +252,19 @@ class MainActivity : AppCompatActivity() {
   fun onCopyUrl(v: View) {
     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(getClipDataUrl())
+  }
+
+  private fun getClipDataTextHtmlUri() : ClipData {
+    val f = File(getExternalFilesDir(null), "PNG_Test.png")
+    val uri = getUriForFile(this, AUTHORITY, f)
+    val clipData = ClipData.newHtmlText(null, "test text", "test <b>html</b>")
+    clipData.addItem(ClipData.Item(uri.toString(), null, uri))
+    return clipData
+    //return ClipData(ClipDescription("label", arrayOf("text/html")), ClipData.Item("text", "html", null, uri))
+  }
+  fun onCopyTextHtmlUri(v: View) {
+    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(getClipDataTextHtmlUri())
   }
 
   private fun getClipDataFileText() : ClipData {
@@ -316,22 +357,23 @@ class MainActivity : AppCompatActivity() {
     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val text = findViewById<EditText>(R.id.inspect)
     if (!clipboard.hasPrimaryClip()) {
-      text.setText("empty")
+      text.setText("=== !clipboard.hasPrimaryClip() ===")
       return
     }
-    inspect(clipboard.primaryClipDescription!!, clipboard.primaryClip!!)
+    inspect("paste", clipboard.primaryClipDescription!!, clipboard.primaryClip!!)
   }
 
-  fun inspect(clipDescription: ClipDescription, clipData: ClipData) {
+  fun inspect(event: String, clipDescription: ClipDescription?, clipData: ClipData?) {
     val text = findViewById<EditText>(R.id.inspect)
-    val itemCount = clipData.itemCount
-    var output = "descriptionCount=" + clipDescription.mimeTypeCount + "\nmime=";
-    for (i in 0 until clipDescription.mimeTypeCount) {
-      output += clipDescription?.getMimeType(i) + ":"
+    val mimeTypeCount = clipDescription?.mimeTypeCount ?: -1
+    val itemCount = clipData?.itemCount ?: -1
+    var output = "event=" + event + ", descriptionCount=" + mimeTypeCount + "\nmime=";
+    for (i in 0 until mimeTypeCount) {
+      output += clipDescription!!.getMimeType(i) + ":"
     }
     output += "\nitemCount=" + itemCount;
     for (i in 0 until itemCount) {
-      val item = clipData.getItemAt(i)!!
+      val item = clipData!!.getItemAt(i)!!
       Log.i(TAG, "uri=" + item.uri)
       output +=
         "\n" +
